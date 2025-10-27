@@ -1,1 +1,1 @@
-# user-management-app
+# user-management-app/frontend/package.json
