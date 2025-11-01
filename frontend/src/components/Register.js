@@ -1,20 +1,17 @@
 import React, { useState } from "react";
 
 const Register = () => {
-  // 🧠 State lưu giá trị input
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
 
-  // 📩 Hàm xử lý đăng ký
   const handleRegister = async (e) => {
-    e.preventDefault(); // Ngăn reload trang
+    e.preventDefault();
     setMessage("");
     setError(false);
 
-    // Kiểm tra input trống
     if (!name || !email || !password) {
       setError(true);
       setMessage("⚠️ Vui lòng nhập đầy đủ thông tin!");
@@ -22,18 +19,24 @@ const Register = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register", {
+      // ✅ Đúng endpoint với backend: /auth/signup
+      const res = await fetch("http://localhost:5000/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
+
+      // Kiểm tra phản hồi từ server có hợp lệ không
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Phản hồi từ server không phải JSON");
+      }
 
       const data = await res.json();
 
       if (res.ok) {
         setMessage(data.message || "✅ Đăng ký thành công!");
         setError(false);
-        // Reset form sau khi đăng ký
         setName("");
         setEmail("");
         setPassword("");
@@ -42,9 +45,9 @@ const Register = () => {
         setMessage(data.message || "❌ Đăng ký thất bại!");
       }
     } catch (err) {
+      console.error("Lỗi:", err);
       setError(true);
       setMessage("🚫 Lỗi kết nối đến server!");
-      console.error(err);
     }
   };
 

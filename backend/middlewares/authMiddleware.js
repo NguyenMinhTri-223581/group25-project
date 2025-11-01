@@ -1,28 +1,30 @@
-// middlewares/authMiddleware.js
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import jwt from "jsonwebtoken";
+import User from "../models/userModel.js";
 
-// Middleware xác thực người dùng qua token
-exports.protect = async (req, res, next) => {
+export const protect = async (req, res, next) => {
   let token;
 
-  // Lấy token từ header
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  // Kiểm tra header có chứa Authorization: Bearer <token>
+  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
     try {
-      token = req.headers.authorization.split(' ')[1];
+      token = req.headers.authorization.split(" ")[1];
 
-      // Giải mã token
+      // Giải mã token bằng secret trong .env
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Tìm user từ token
-      req.user = await User.findById(decoded.id).select('-password');
+      // Lấy user từ DB và gán vào req.user (trừ password)
+      req.user = await User.findById(decoded.id).select("-password");
+
+      if (!req.user) {
+        return res.status(404).json({ message: "Không tìm thấy người dùng" });
+      }
+
       next();
     } catch (error) {
-      return res.status(401).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
+      console.error("❌ Lỗi xác thực token:", error.message);
+      return res.status(401).json({ message: "Token không hợp lệ hoặc hết hạn" });
     }
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: 'Không có token, truy cập bị từ chối' });
+  } else {
+    return res.status(401).json({ message: "Chưa đăng nhập hoặc thiếu token" });
   }
 };

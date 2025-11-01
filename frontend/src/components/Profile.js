@@ -16,22 +16,34 @@ const Profile = () => {
       }
 
       try {
-        const res = await fetch("http://localhost:5000/api/auth/me", {
+        // 🔥 Gọi đúng endpoint của backend
+        const res = await fetch("http://localhost:5000/auth/me", {
           method: "GET",
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         });
 
+        // Nếu server không trả về JSON hợp lệ (ví dụ: lỗi HTML)
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await res.text();
+          console.error("Phản hồi không phải JSON:", text);
+          throw new Error("Server không trả về JSON hợp lệ");
+        }
+
         const data = await res.json();
 
-        if (res.ok) {
+        if (res.ok && data.user) {
           setUser(data.user);
+          setMessage("");
         } else {
-          setMessage(data.message || "Không thể tải thông tin người dùng!");
+          setMessage(data.message || "❌ Không thể tải thông tin người dùng!");
         }
       } catch (err) {
-        setMessage("🚫 Lỗi kết nối đến server!");
+        console.error("🚫 Lỗi khi tải thông tin:", err);
+        setMessage("🚫 Không thể kết nối đến server!");
       } finally {
         setLoading(false);
       }
@@ -40,7 +52,9 @@ const Profile = () => {
     fetchUserInfo();
   }, []);
 
-  if (loading) return <p>Đang tải...</p>;
+  // Hiển thị trong lúc đang tải
+  if (loading)
+    return <p style={{ textAlign: "center" }}>⏳ Đang tải thông tin...</p>;
 
   return (
     <div
@@ -51,21 +65,33 @@ const Profile = () => {
         border: "1px solid #ccc",
         borderRadius: "10px",
         boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+        backgroundColor: "#fff",
       }}
     >
-      <h2 style={{ textAlign: "center" }}>👤 Thông tin người dùng</h2>
+      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+        👤 Thông tin người dùng
+      </h2>
 
       {user ? (
-        <div style={{ lineHeight: "1.8" }}>
-          <p><strong>Tên:</strong> {user.name}</p>
-          <p><strong>Email:</strong> {user.email}</p>
-          <p><strong>ID:</strong> {user._id}</p>
+        <div style={{ lineHeight: "1.8", fontSize: "16px" }}>
+          <p>
+            <strong>Tên:</strong> {user.name}
+          </p>
+          <p>
+            <strong>Email:</strong> {user.email}
+          </p>
+          <p>
+            <strong>ID:</strong> {user._id}
+          </p>
         </div>
       ) : (
-        <p style={{ color: "red", textAlign: "center" }}>{message}</p>
+        <p style={{ color: "red", textAlign: "center", fontWeight: "bold" }}>
+          {message}
+        </p>
       )}
     </div>
   );
 };
 
 export default Profile;
+
