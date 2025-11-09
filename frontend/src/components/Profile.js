@@ -3,95 +3,90 @@ import React, { useEffect, useState } from "react";
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchUserInfo = async () => {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setMessage("⚠️ Bạn chưa đăng nhập!");
-        setLoading(false);
-        return;
-      }
-
+    const fetchProfile = async () => {
       try {
-        // 🔥 Gọi đúng endpoint của backend
-        const res = await fetch("http://localhost:5000/auth/me", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        // Nếu server không trả về JSON hợp lệ (ví dụ: lỗi HTML)
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          const text = await res.text();
-          console.error("Phản hồi không phải JSON:", text);
-          throw new Error("Server không trả về JSON hợp lệ");
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("⚠️ Bạn chưa đăng nhập!");
+          setLoading(false);
+          return;
         }
+
+        const res = await fetch(
+          `${process.env.REACT_APP_API_URL || "http://localhost:5000"}/api/users/profile`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Không thể lấy thông tin người dùng!");
 
-        if (res.ok && data.user) {
-          setUser(data.user);
-          setMessage("");
-        } else {
-          setMessage(data.message || "❌ Không thể tải thông tin người dùng!");
-        }
+        setUser(data);
+        setLoading(false);
       } catch (err) {
-        console.error("🚫 Lỗi khi tải thông tin:", err);
-        setMessage("🚫 Không thể kết nối đến server!");
-      } finally {
+        setError(err.message);
         setLoading(false);
       }
     };
 
-    fetchUserInfo();
+    fetchProfile();
   }, []);
 
-  // Hiển thị trong lúc đang tải
-  if (loading)
-    return <p style={{ textAlign: "center" }}>⏳ Đang tải thông tin...</p>;
+  if (loading) return <p style={{ textAlign: "center" }}>⏳ Đang tải thông tin...</p>;
+  if (error) return <p style={{ color: "red", textAlign: "center" }}>{error}</p>;
 
   return (
     <div
       style={{
-        maxWidth: "500px",
-        margin: "50px auto",
-        padding: "20px",
-        border: "1px solid #ccc",
+        maxWidth: "400px",
+        margin: "80px auto",
+        padding: "30px",
+        border: "1px solid #ddd",
         borderRadius: "10px",
         boxShadow: "0 0 10px rgba(0,0,0,0.1)",
         backgroundColor: "#fff",
       }}
     >
-      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
-        👤 Thông tin người dùng
-      </h2>
+      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>👤 Thông tin tài khoản</h2>
+      <p>
+        <strong>Họ tên:</strong> {user?.name}
+      </p>
+      <p>
+        <strong>Email:</strong> {user?.email}
+      </p>
+      <p>
+        <strong>ID:</strong> {user?._id}
+      </p>
 
-      {user ? (
-        <div style={{ lineHeight: "1.8", fontSize: "16px" }}>
-          <p>
-            <strong>Tên:</strong> {user.name}
-          </p>
-          <p>
-            <strong>Email:</strong> {user.email}
-          </p>
-          <p>
-            <strong>ID:</strong> {user._id}
-          </p>
-        </div>
-      ) : (
-        <p style={{ color: "red", textAlign: "center", fontWeight: "bold" }}>
-          {message}
-        </p>
-      )}
+      <button
+        onClick={() => {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+        }}
+        style={{
+          marginTop: "20px",
+          width: "100%",
+          padding: "10px",
+          backgroundColor: "#dc3545",
+          color: "#fff",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+          fontWeight: "bold",
+        }}
+      >
+        Đăng xuất
+      </button>
     </div>
   );
 };
 
 export default Profile;
-

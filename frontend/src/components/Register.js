@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -19,35 +20,41 @@ const Register = () => {
     }
 
     try {
-      // ✅ Đúng endpoint với backend: /auth/signup
-      const res = await fetch("http://localhost:5000/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      // ✅ Đảm bảo URL backend chính xác
+      const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+      // 📨 Gửi request đến đúng endpoint
+      const res = await axios.post(`${API_URL}/api/auth/signup`, {
+        name,
+        email,
+        password,
       });
 
-      // Kiểm tra phản hồi từ server có hợp lệ không
-      const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Phản hồi từ server không phải JSON");
+      // ✅ Hiển thị thông báo phản hồi
+      setMessage(res.data.message || "✅ Đăng ký thành công!");
+      setError(false);
+
+      // 🔒 Lưu token nếu có
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
       }
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage(data.message || "✅ Đăng ký thành công!");
-        setError(false);
-        setName("");
-        setEmail("");
-        setPassword("");
-      } else {
-        setError(true);
-        setMessage(data.message || "❌ Đăng ký thất bại!");
-      }
+      // 🧹 Reset form
+      setName("");
+      setEmail("");
+      setPassword("");
     } catch (err) {
-      console.error("Lỗi:", err);
+      console.error("❌ Lỗi đăng ký:", err);
+
+      // ✅ Xử lý lỗi server
+      if (err.response && err.response.data && err.response.data.message) {
+        setMessage(`🚫 ${err.response.data.message}`);
+      } else if (err.code === "ERR_NETWORK") {
+        setMessage("🚫 Không thể kết nối tới server! Hãy kiểm tra backend đang chạy tại cổng 5000.");
+      } else {
+        setMessage("🚫 Lỗi không xác định khi đăng ký!");
+      }
       setError(true);
-      setMessage("🚫 Lỗi kết nối đến server!");
     }
   };
 
@@ -55,36 +62,57 @@ const Register = () => {
     <div
       style={{
         maxWidth: "400px",
-        margin: "50px auto",
-        padding: "20px",
-        border: "1px solid #ccc",
+        margin: "80px auto",
+        padding: "30px",
+        border: "1px solid #ddd",
         borderRadius: "10px",
-        boxShadow: "0px 0px 10px rgba(0,0,0,0.1)",
+        boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+        backgroundColor: "#fff",
       }}
     >
-      <h2 style={{ textAlign: "center" }}>🧑‍💻 Đăng ký tài khoản</h2>
+      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+        📝 Đăng ký tài khoản
+      </h2>
 
       <form onSubmit={handleRegister}>
         <input
           type="text"
-          placeholder="Tên người dùng"
+          placeholder="Họ và tên"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          style={{ width: "100%", padding: "8px", margin: "8px 0" }}
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginBottom: "10px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
         />
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          style={{ width: "100%", padding: "8px", margin: "8px 0" }}
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginBottom: "10px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
         />
         <input
           type="password"
           placeholder="Mật khẩu"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          style={{ width: "100%", padding: "8px", margin: "8px 0" }}
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginBottom: "10px",
+            borderRadius: "5px",
+            border: "1px solid #ccc",
+          }}
         />
         <button
           type="submit"
@@ -96,10 +124,10 @@ const Register = () => {
             border: "none",
             borderRadius: "5px",
             cursor: "pointer",
-            marginTop: "10px",
+            fontWeight: "bold",
           }}
         >
-          Gửi
+          Đăng ký
         </button>
       </form>
 

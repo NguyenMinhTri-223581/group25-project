@@ -2,59 +2,51 @@ import React, { useEffect, useState } from "react";
 
 const AdminUserList = () => {
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  const fetchUsers = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setMessage("⚠️ Bạn chưa đăng nhập!");
-      return;
-    }
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
+  const fetchUsers = async () => {
     try {
-      const res = await fetch("http://localhost:5000/users", {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setMessage("⚠️ Bạn chưa đăng nhập!");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/users`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Không thể tải danh sách người dùng!");
 
-      if (res.ok) {
-        setUsers(data);
-        setMessage("");
-      } else {
-        setMessage(data.message || "❌ Không thể tải danh sách user!");
-      }
+      setUsers(data);
+      setLoading(false);
     } catch (err) {
-      console.error(err);
-      setMessage("🚫 Lỗi kết nối đến server!");
+      setMessage(`🚫 ${err.message}`);
+      setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    const token = localStorage.getItem("token");
-    if (!window.confirm("Bạn có chắc muốn xóa user này?")) return;
-
+  const deleteUser = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/users/${id}`, {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/users/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Không thể xóa người dùng!");
 
-      if (res.ok) {
-        alert("✅ Xóa user thành công!");
-        setUsers(users.filter((u) => u._id !== id));
-      } else {
-        alert(data.message || "❌ Xóa thất bại!");
-      }
+      setMessage("🗑️ Đã xóa người dùng thành công!");
+      fetchUsers();
     } catch (err) {
-      alert("🚫 Không thể kết nối đến server!");
+      setMessage(`🚫 ${err.message}`);
     }
   };
 
@@ -62,43 +54,57 @@ const AdminUserList = () => {
     fetchUsers();
   }, []);
 
-  return (
-    <div style={{ padding: "20px" }}>
-      <h2>👑 Trang Quản Trị Người Dùng</h2>
+  if (loading) return <p style={{ textAlign: "center" }}>⏳ Đang tải danh sách người dùng...</p>;
 
+  return (
+    <div
+      style={{
+        maxWidth: "700px",
+        margin: "50px auto",
+        padding: "20px",
+        border: "1px solid #ddd",
+        borderRadius: "10px",
+        backgroundColor: "#fff",
+      }}
+    >
+      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>👥 Danh sách người dùng</h2>
       {message && (
-        <p style={{ color: "red", fontWeight: "bold" }}>{message}</p>
+        <p style={{ color: message.includes("🚫") ? "red" : "green", textAlign: "center" }}>
+          {message}
+        </p>
       )}
 
-      <table
-        border="1"
-        cellPadding="10"
-        style={{ borderCollapse: "collapse", width: "100%", marginTop: "20px" }}
-      >
-        <thead>
-          <tr style={{ background: "#eee" }}>
-            <th>Tên</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Thao tác</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.length > 0 ? (
-            users.map((user) => (
-              <tr key={user._id}>
-                <td>{user.name}</td>
-                <td>{user.email}</td>
-                <td>{user.role}</td>
-                <td>
+      {users.length === 0 ? (
+        <p style={{ textAlign: "center" }}>Không có người dùng nào.</p>
+      ) : (
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            marginTop: "10px",
+          }}
+        >
+          <thead>
+            <tr style={{ backgroundColor: "#f8f9fa" }}>
+              <th style={cellStyle}>Tên</th>
+              <th style={cellStyle}>Email</th>
+              <th style={cellStyle}>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u._id}>
+                <td style={cellStyle}>{u.name}</td>
+                <td style={cellStyle}>{u.email}</td>
+                <td style={cellStyle}>
                   <button
-                    onClick={() => handleDelete(user._id)}
+                    onClick={() => deleteUser(u._id)}
                     style={{
-                      backgroundColor: "red",
-                      color: "white",
+                      backgroundColor: "#dc3545",
+                      color: "#fff",
                       border: "none",
-                      borderRadius: "5px",
                       padding: "5px 10px",
+                      borderRadius: "5px",
                       cursor: "pointer",
                     }}
                   >
@@ -106,18 +112,18 @@ const AdminUserList = () => {
                   </button>
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="4" style={{ textAlign: "center" }}>
-                Không có user nào!
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
+};
+
+const cellStyle = {
+  border: "1px solid #ddd",
+  padding: "8px",
+  textAlign: "center",
 };
 
 export default AdminUserList;

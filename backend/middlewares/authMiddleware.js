@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
-import User from "../models/userModel.js";
+import User from "../models/UserModel.js";
 
-export const protect = async (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
   let token;
 
   // Kiểm tra header có chứa Authorization: Bearer <token>
@@ -22,9 +22,11 @@ export const protect = async (req, res, next) => {
       next();
     } catch (error) {
       console.error("❌ Lỗi xác thực token:", error.message);
-      return res.status(401).json({ message: "Token không hợp lệ hoặc hết hạn" });
+      return res.status(401).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
     }
   } else {
     return res.status(401).json({ message: "Chưa đăng nhập hoặc thiếu token" });
   }
 };
+
+

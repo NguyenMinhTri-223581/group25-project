@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -18,44 +19,29 @@ const Login = () => {
     }
 
     try {
-      // 🔥 CHỈNH LẠI ĐƯỜNG DẪN API
-      // Nếu backend bạn KHÔNG có "/api", dùng dòng dưới:
-      const res = await fetch("http://localhost:5000/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      // ✅ Gọi đúng API backend qua biến môi trường
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL}/api/auth/login`,
+        { email, password }
+      );
 
-      // Nếu backend có "/api/auth", thì thay lại dòng trên bằng:
-      // const res = await fetch("http://localhost:5000/api/auth/login", {...});
+      setMessage(res.data.message || "✅ Đăng nhập thành công!");
+      setError(false);
 
-      const contentType = res.headers.get("content-type");
-
-      // Kiểm tra phản hồi có phải JSON không
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server không trả về JSON hợp lệ");
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
       }
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage(data.message || "✅ Đăng nhập thành công!");
-        setError(false);
-
-        if (data.token) {
-          localStorage.setItem("token", data.token);
-        }
-
-        setEmail("");
-        setPassword("");
-      } else {
-        setError(true);
-        setMessage(data.message || "❌ Đăng nhập thất bại!");
-      }
+      setEmail("");
+      setPassword("");
     } catch (err) {
-      console.error("Lỗi đăng nhập:", err);
+      console.error("❌ Lỗi kết nối tới server:", err);
+      if (err.response) {
+        setMessage(err.response.data.message || "❌ Đăng nhập thất bại!");
+      } else {
+        setMessage("🚫 Lỗi kết nối đến server!");
+      }
       setError(true);
-      setMessage("🚫 Lỗi kết nối đến server!");
     }
   };
 
@@ -133,3 +119,4 @@ const Login = () => {
 };
 
 export default Login;
+
