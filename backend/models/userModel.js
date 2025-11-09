@@ -20,21 +20,15 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["user", "admin"],
+      enum: ["user", "moderator", "admin"], // ✅ thêm moderator
       default: "user",
     },
-    resetPasswordToken: {
-  type: String,
-   },
-resetPasswordExpire: {
-  type: Date,
-},
-
+    resetPasswordToken: { type: String },
+    resetPasswordExpire: { type: Date },
   },
   { timestamps: true }
 );
 
 // ✅ Cách định nghĩa model an toàn, không bị lỗi OverwriteModelError
 const User = mongoose.models.User || mongoose.model("User", userSchema);
-
 export default User;

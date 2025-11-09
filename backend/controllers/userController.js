@@ -4,9 +4,7 @@ import User from "../models/UserModel.js";
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
-    if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng" });
-    }
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng" });
     res.json(user);
   } catch (error) {
     console.error("Lỗi khi lấy profile:", error);
@@ -14,7 +12,7 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-// ✅ GET /api/users – Chỉ admin
+// ✅ GET /api/users – Dành cho admin và moderator
 export const getUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -30,8 +28,12 @@ export const deleteUser = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "Không tìm thấy user" });
 
-    // Admin hoặc chính chủ mới được xóa
-    if (req.user.role === "admin" || req.user._id.equals(user._id)) {
+    // Admin hoặc chính chủ hoặc moderator có quyền xóa user
+    if (
+      req.user.role === "admin" ||
+      req.user.role === "moderator" ||
+      req.user._id.equals(user._id)
+    ) {
       await user.deleteOne();
       res.json({ message: "Đã xóa user thành công" });
     } else {
